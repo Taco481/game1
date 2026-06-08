@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PaintAR - Selecteer & Verf</title>
+<title>PaintAR - Slim Selecteren</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: system-ui, -apple-system, sans-serif; background: #000; overflow: hidden; height: 100vh; touch-action: none; }
@@ -18,93 +18,96 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
 #ui {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
   background: linear-gradient(transparent, rgba(0,0,0,0.85));
-  padding: 60px 20px 30px;
+  padding: 60px 8px 20px;
   pointer-events: none;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 #ui > * { pointer-events: auto; }
 
-#ui.collapsed {
-  transform: translateY(calc(100% - 50px));
-  opacity: 0.6;
-}
-#ui.collapsed #colorPicker,
-#ui.collapsed #controls { opacity: 0; pointer-events: none; }
+#ui.collapsed { transform: translateY(calc(100% - 44px)); opacity: 0.5; }
+#ui.collapsed #colorPicker, #ui.collapsed #controls, #ui.collapsed #selectionBar { opacity: 0; pointer-events: none; }
 #ui-toggle {
-  position: absolute; top: 5px; right: 20px;
-  font-size: 20px; cursor: pointer; opacity: 0.5;
+  position: absolute; top: 4px; right: 12px;
+  font-size: 18px; cursor: pointer; opacity: 0.4;
   transition: opacity 0.15s; pointer-events: auto;
 }
 #ui-toggle:hover { opacity: 1; }
 
 #colorPicker {
-  display: flex; gap: 10px; align-items: center;
+  display: flex; gap: 6px; align-items: center;
   background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px; padding: 12px 16px;
+  border-radius: 16px; padding: 8px 12px;
   border: 1px solid rgba(255,255,255,0.1);
   flex-wrap: wrap;
   transition: opacity 0.3s;
 }
-
 #colorPicker input[type="color"] {
-  width: 44px; height: 44px; border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 10px; cursor: pointer; background: none; padding: 2px;
+  width: 38px; height: 38px; border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 8px; cursor: pointer; background: none; padding: 2px;
 }
 #colorPicker input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-#colorPicker input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
-
-.presets { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
-.preset {
-  width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
-  cursor: pointer; transition: transform 0.15s; flex-shrink: 0;
-}
+#colorPicker input[type="color"]::-webkit-color-swatch { border: none; border-radius: 5px; }
+.presets { display: flex; gap: 5px; flex: 1; flex-wrap: wrap; }
+.preset { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); cursor: pointer; transition: transform 0.15s; flex-shrink: 0; }
 .preset:hover, .preset.active { transform: scale(1.15); border-color: white; }
 
-#controls { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; transition: opacity 0.3s; }
-#controls label { color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 500; white-space: nowrap; }
-#controls input[type="range"] { flex: 1; min-width: 80px; accent-color: white; height: 4px; }
-#opacityValue { color: white; font-size: 12px; font-weight: 600; min-width: 28px; text-align: right; }
+#controls { display: flex; gap: 6px; margin-top: 8px; align-items: center; flex-wrap: wrap; transition: opacity 0.3s; }
+#controls label { color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 500; white-space: nowrap; }
+#controls input[type="range"] { flex: 1; min-width: 60px; accent-color: white; height: 4px; }
+#opacityValue { color: white; font-size: 11px; font-weight: 600; min-width: 24px; text-align: right; }
 
-.tool-btn {
-  font-size: 12px; font-weight: 600; color: white;
-  background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 30px; padding: 7px 14px; cursor: pointer;
+.btn {
+  font-size: 11px; font-weight: 600; color: white;
+  background: rgba(255,255,255,0.12); backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 30px; padding: 6px 12px; cursor: pointer;
   white-space: nowrap; transition: background 0.15s;
 }
-.tool-btn:hover { background: rgba(255,255,255,0.25); }
-.tool-btn.active { background: rgba(255,255,255,0.3); border-color: white; }
+.btn:hover { background: rgba(255,255,255,0.22); }
+.btn.active { background: rgba(255,255,255,0.28); border-color: white; }
+.btn-danger { background: rgba(255,59,48,0.25); border-color: rgba(255,59,48,0.3); }
+.btn-danger:hover { background: rgba(255,59,48,0.4); }
+
+#selectionBar {
+  display: flex; gap: 6px; margin-top: 6px; align-items: center;
+  background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+  border-radius: 12px; padding: 6px 10px;
+  transition: opacity 0.3s;
+  flex-wrap: wrap;
+}
+#selectionBar .label { color: rgba(255,255,255,0.5); font-size: 11px; flex: 1; }
+.selection-chip {
+  font-size: 10px; background: rgba(255,255,255,0.1); color: white;
+  border-radius: 20px; padding: 3px 10px; display: inline-flex; align-items: center; gap: 6px;
+}
+.selection-chip .remove { cursor: pointer; opacity: 0.5; font-size: 14px; }
+.selection-chip .remove:hover { opacity: 1; }
 
 #status {
-  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
   z-index: 10; color: white;
-  background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 8px 20px; border-radius: 30px;
-  font-size: 13px; font-weight: 500;
-  border: 1px solid rgba(255,255,255,0.1);
-  text-align: center;
-  transition: opacity 0.3s;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(8px);
+  padding: 6px 16px; border-radius: 30px;
+  font-size: 12px; font-weight: 500;
+  border: 1px solid rgba(255,255,255,0.08);
+  text-align: center; transition: opacity 0.3s;
+  pointer-events: none; white-space: nowrap;
 }
 #startBtn {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  z-index: 20; font-size: 18px; font-weight: 600; color: white;
+  z-index: 20; font-size: 17px; font-weight: 600; color: white;
   background: #007aff; border: none; border-radius: 30px;
-  padding: 16px 40px; cursor: pointer;
+  padding: 14px 36px; cursor: pointer;
   box-shadow: 0 8px 30px rgba(0,122,255,0.4);
   transition: transform 0.15s;
 }
 #startBtn:hover { transform: translate(-50%, -50%) scale(1.05); }
 
-#selectionInfo {
-  position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
-  z-index: 8; color: white; font-size: 12px; font-weight: 500;
-  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
-  padding: 5px 14px; border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.1);
-  opacity: 0; transition: opacity 0.3s;
+#depthHint {
+  position: absolute; bottom: 200px; right: 12px; z-index: 6;
+  color: rgba(255,255,255,0.3); font-size: 10px;
+  text-align: right; pointer-events: none;
+  line-height: 1.4;
 }
 </style>
 </head>
@@ -116,9 +119,9 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
   <canvas id="selectionCanvas"></canvas>
   <canvas id="resultCanvas"></canvas>
 
-  <div id="status">📱 Tik op Start om de camera te openen</div>
+  <div id="status">📱 Start de camera</div>
   <button id="startBtn">Start Camera</button>
-  <div id="selectionInfo"></div>
+  <div id="depthHint"></div>
 
   <div id="ui">
     <div id="ui-toggle">▼</div>
@@ -132,7 +135,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
         <div class="preset" style="background:#9B59B6" data-color="#9B59B6"></div>
         <div class="preset" style="background:#E67E22" data-color="#E67E22"></div>
         <div class="preset" style="background:#1ABC9C" data-color="#1ABC9C"></div>
-        <div class="preset" style="background:#ECF0F1" data-color="#ECF0F1"></div>
+        <div class="preset" style="background:#F5F5F0" data-color="#F5F5F0"></div>
         <div class="preset" style="background:#2C3E50" data-color="#2C3E50"></div>
       </div>
     </div>
@@ -140,10 +143,14 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
       <label>Sterkte</label>
       <input type="range" id="opacitySlider" min="10" max="100" value="70">
       <span id="opacityValue">70%</span>
-      <button class="tool-btn" id="shadowToggle">🌓 Schaduw</button>
-      <button class="tool-btn active" id="modeSelect">🖱️ Selecteer</button>
-      <button class="tool-btn" id="modeBrush">🖌️ Penseel</button>
-      <button class="tool-btn" id="clearBtn">✕ Wis</button>
+      <button class="btn active" id="shadowToggle">🌓 Schaduw</button>
+      <button class="btn" id="depthToggle">📐 Diepte</button>
+      <button class="btn active" id="modeSelect">🖱️ Selecteer</button>
+      <button class="btn" id="modeBrush">🖌️ Penseel</button>
+      <button class="btn btn-danger" id="clearBtn">✕ Alles</button>
+    </div>
+    <div id="selectionBar">
+      <span class="label">Geen selecties</span>
     </div>
   </div>
 </div>
@@ -162,32 +169,42 @@ const opacitySlider = document.getElementById('opacitySlider');
 const opacityValue = document.getElementById('opacityValue');
 const status = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
+const depthHint = document.getElementById('depthHint');
 const presets = document.querySelectorAll('.preset');
-const selectionInfo = document.getElementById('selectionInfo');
 const modeSelect = document.getElementById('modeSelect');
 const modeBrush = document.getElementById('modeBrush');
 const clearBtn = document.getElementById('clearBtn');
 const shadowToggle = document.getElementById('shadowToggle');
+const depthToggle = document.getElementById('depthToggle');
+const selectionBar = document.querySelector('#selectionBar .label');
 const ui = document.getElementById('ui');
 const uiToggle = document.getElementById('ui-toggle');
 
+// --- State ---
 let stream = null;
 let currentColor = '#4A90D9';
 let opacity = 0.7;
 let animationId = null;
 let isRunning = false;
-
 let tool = 'select';
 let canvasW = 0, canvasH = 0;
-let selectionMask = null;
-let smoothMask = null;
-let hasSelection = false;
 let preserveShadows = true;
+let depthAssist = false;
 let shadowMin = 0, shadowMax = 1;
 
-const TOLERANCE = 30;
-const SCALE = 2;
+// Selection stack: each entry has { mask, smoothMask, color, sw, sh }
+let selections = [];
+let mergedSmooth = null;
 
+// --- Edge map (cached after selection) ---
+let edgeMap = null;
+
+// --- Motion / depth ---
+let prevFrame = null;
+let motionMap = null;
+const MOTION_BLOCK = 16;
+
+// --- Helpers ---
 function hexToRgb(hex) {
   return {
     r: parseInt(hex.slice(1,3), 16),
@@ -196,23 +213,85 @@ function hexToRgb(hex) {
   };
 }
 
-function colorDist(c1, c2) {
-  const dr = c1[0] - c2[0], dg = c1[1] - c2[1], db = c1[2] - c2[2];
-  return Math.sqrt(dr*dr + dg*dg + db*db);
-}
-
 function getPixel(data, w, x, y) {
   const i = (y * w + x) * 4;
   return [data[i], data[i+1], data[i+2]];
 }
 
-function floodFill(imageData, startX, startY, tolerance) {
+function lumFromData(data, idx) {
+  return 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+}
+
+function colorDist(c1, c2) {
+  const dr = c1[0] - c2[0], dg = c1[1] - c2[1], db = c1[2] - c2[2];
+  return Math.sqrt(dr*dr + dg*dg + db*db);
+}
+
+// --- Sobel edge detection ---
+function computeEdges(imageData) {
+  const w = imageData.width, h = imageData.height;
+  const data = imageData.data;
+  const edges = new Uint8Array(w * h);
+  const gray = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    gray[i] = lumFromData(data, i * 4);
+  }
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x;
+      const gx = -gray[i - w - 1] + gray[i - w + 1]
+               - 2 * gray[i - 1] + 2 * gray[i + 1]
+               - gray[i + w - 1] + gray[i + w + 1];
+      const gy = -gray[i - w - 1] - 2 * gray[i - w] - gray[i - w + 1]
+               + gray[i + w - 1] + 2 * gray[i + w] + gray[i + w + 1];
+      const mag = Math.sqrt(gx * gx + gy * gy);
+      edges[i] = Math.min(255, Math.round(mag));
+    }
+  }
+  return edges;
+}
+
+// --- Block-based motion (frame differencing) ---
+function computeMotion(currentData, prevData, w, h) {
+  const bw = Math.ceil(w / MOTION_BLOCK);
+  const bh = Math.ceil(h / MOTION_BLOCK);
+  const motion = new Float32Array(bw * bh);
+  if (!prevData) return motion;
+
+  for (let by = 0; by < bh; by++) {
+    for (let bx = 0; bx < bw; bx++) {
+      let sum = 0, count = 0;
+      const startY = by * MOTION_BLOCK, endY = Math.min(startY + MOTION_BLOCK, h);
+      const startX = bx * MOTION_BLOCK, endX = Math.min(startX + MOTION_BLOCK, w);
+      for (let py = startY; py < endY; py++) {
+        for (let px = startX; px < endX; px++) {
+          const i = (py * w + px) * 4;
+          const diff = Math.abs(currentData[i] - prevData[i])
+                     + Math.abs(currentData[i+1] - prevData[i+1])
+                     + Math.abs(currentData[i+2] - prevData[i+2]);
+          sum += diff;
+          count++;
+        }
+      }
+      motion[by * bw + bx] = sum / count;
+    }
+  }
+  return motion;
+}
+
+// --- Flood fill with edge + motion awareness ---
+function smartFloodFill(imageData, startX, startY, edges, motion, mw) {
   const w = imageData.width, h = imageData.height;
   const data = imageData.data;
   const visited = new Uint8Array(w * h);
   const mask = new Uint8Array(w * h);
 
   const targetColor = getPixel(data, w, startX, startY);
+  const targetMotion = motion ? motion[startY * mw + startX] : 0;
+  const baseTol = 28;
+  const edgeTol = 35;
+  const motionTol = 12;
+
   const queue = [[startX, startY]];
   visited[startY * w + startX] = 1;
   let count = 0;
@@ -220,11 +299,17 @@ function floodFill(imageData, startX, startY, tolerance) {
   while (queue.length > 0) {
     const [x, y] = queue.shift();
     const idx = y * w + x;
+    const edgeVal = edges ? edges[idx] : 0;
+
+    if (edgeVal > 60) continue;
+
     mask[idx] = 1;
     count++;
 
     const px = getPixel(data, w, x, y);
-    if (colorDist(px, targetColor) > tolerance) continue;
+    const cd = colorDist(px, targetColor);
+    const tol = edgeVal > 30 ? baseTol * 0.6 : baseTol;
+    if (cd > tol) continue;
 
     for (const [nx, ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]) {
       if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
@@ -232,7 +317,14 @@ function floodFill(imageData, startX, startY, tolerance) {
       if (visited[nidx]) continue;
       visited[nidx] = 1;
       const np = getPixel(data, w, nx, ny);
-      if (colorDist(np, targetColor) <= tolerance) {
+      const nd = colorDist(np, targetColor);
+      const ne = edges ? edges[nidx] : 0;
+      const passEdge = ne <= 55;
+      const passColor = nd <= (ne > 25 ? edgeTol * 0.5 : edgeTol);
+      const nm = motion ? motion[ny * mw + nx] : 0;
+      const passMotion = !motion || Math.abs(nm - targetMotion) <= motionTol;
+
+      if (passColor && passEdge && passMotion) {
         queue.push([nx, ny]);
       }
     }
@@ -240,14 +332,14 @@ function floodFill(imageData, startX, startY, tolerance) {
   return { mask, count };
 }
 
-function buildSmoothMask(sw, sh) {
-  const smallCanvas = document.createElement('canvas');
-  smallCanvas.width = sw;
-  smallCanvas.height = sh;
-  const sCtx = smallCanvas.getContext('2d');
+// --- Build smooth mask from binary mask ---
+function buildSmoothFromBinary(binaryMask, sw, sh) {
+  const small = document.createElement('canvas');
+  small.width = sw; small.height = sh;
+  const sCtx = small.getContext('2d');
   const imgData = sCtx.createImageData(sw, sh);
   for (let i = 0; i < sw * sh; i++) {
-    const v = selectionMask[i] ? 255 : 0;
+    const v = binaryMask[i] ? 255 : 0;
     imgData.data[i * 4] = v;
     imgData.data[i * 4 + 1] = v;
     imgData.data[i * 4 + 2] = v;
@@ -255,84 +347,63 @@ function buildSmoothMask(sw, sh) {
   }
   sCtx.putImageData(imgData, 0, 0);
 
-  const bigCanvas = document.createElement('canvas');
-  bigCanvas.width = canvasW;
-  bigCanvas.height = canvasH;
-  const bCtx = bigCanvas.getContext('2d');
+  const big = document.createElement('canvas');
+  big.width = canvasW; big.height = canvasH;
+  const bCtx = big.getContext('2d');
   bCtx.imageSmoothingEnabled = true;
   bCtx.imageSmoothingQuality = 'high';
-  bCtx.drawImage(smallCanvas, 0, 0, canvasW, canvasH);
+  bCtx.drawImage(small, 0, 0, canvasW, canvasH);
+  const smooth = bCtx.getImageData(0, 0, canvasW, canvasH);
 
-  const smoothData = bCtx.getImageData(0, 0, canvasW, canvasH);
-  smoothMask = new Uint8Array(canvasW * canvasH);
+  const out = new Uint8Array(canvasW * canvasH);
   for (let i = 0; i < canvasW * canvasH; i++) {
-    smoothMask[i] = smoothData.data[i * 4];
+    out[i] = smooth.data[i * 4];
   }
-
-  const origData = ctx.getImageData(0, 0, canvasW, canvasH).data;
-  let sMin = 255, sMax = 0;
-  for (let i = 0; i < canvasW * canvasH; i++) {
-    if (smoothMask[i] > 10) {
-      const idx = i * 4;
-      const lum = 0.299 * origData[idx] + 0.587 * origData[idx + 1] + 0.114 * origData[idx + 2];
-      if (lum < sMin) sMin = lum;
-      if (lum > sMax) sMax = lum;
-    }
-  }
-  shadowMin = sMin;
-  shadowMax = Math.max(sMax, sMin + 1);
+  return out;
 }
 
-function createSelection(tapX, tapY) {
-  if (!isRunning || !canvasW || !canvasH) return;
-
-  canvas.width = canvasW;
-  canvas.height = canvasH;
-  ctx.drawImage(video, 0, 0, canvasW, canvasH);
-
-  const sw = Math.ceil(canvasW / SCALE);
-  const sh = Math.ceil(canvasH / SCALE);
-
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = sw;
-  tempCanvas.height = sh;
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.drawImage(canvas, 0, 0, sw, sh);
-  const imgData = tempCtx.getImageData(0, 0, sw, sh);
-
-  const sx = Math.round(tapX / SCALE);
-  const sy = Math.round(tapY / SCALE);
-
-  status.textContent = '🔄 Bezig met selecteren...';
-  setTimeout(() => {
-    const result = floodFill(imgData, Math.min(sx, sw - 1), Math.min(sy, sh - 1), TOLERANCE);
-
-    if (result.count < 50) {
-      status.textContent = '⚠️ Te klein gebied, probeer een duidelijker vlak';
-      return;
+// --- Merge all selections into one smooth mask ---
+function mergeSelections() {
+  if (selections.length === 0) {
+    mergedSmooth = null;
+    updateSelectionBar();
+    redrawOverlay();
+    return;
+  }
+  const acc = new Uint16Array(canvasW * canvasH);
+  for (const sel of selections) {
+    for (let i = 0; i < canvasW * canvasH; i++) {
+      const v = sel.smoothMask[i];
+      if (v > acc[i]) acc[i] = v; // max blend
     }
-
-    selectionMask = result.mask;
-    hasSelection = true;
-    buildSmoothMask(sw, sh);
-    drawSelectionOverlay();
-    selectionInfo.textContent = '✅ Gebied geselecteerd';
-    selectionInfo.style.opacity = '1';
-    status.textContent = '🎨 Tik op een ander vlak of kies een kleur';
-    setTimeout(() => { selectionInfo.style.opacity = '0'; }, 3000);
-  }, 10);
+  }
+  mergedSmooth = new Uint8Array(canvasW * canvasH);
+  for (let i = 0; i < canvasW * canvasH; i++) {
+    mergedSmooth[i] = Math.min(255, acc[i]);
+  }
+  updateSelectionBar();
+  redrawOverlay();
 }
 
-function drawSelectionOverlay() {
-  selCanvas.width = canvasW;
-  selCanvas.height = canvasH;
-  selCtx.clearRect(0, 0, canvasW, canvasH);
+function updateSelectionBar() {
+  if (selections.length === 0) {
+    selectionBar.textContent = '👆 Tik op een vlak om te selecteren';
+    return;
+  }
+  selectionBar.textContent = `✅ ${selections.length} vlak(ken) geselecteerd — tik om toe te voegen`;
+}
+
+function redrawOverlay() {
+  selCanvas.width = canvasW || 1;
+  selCanvas.height = canvasH || 1;
+  selCtx.clearRect(0, 0, canvasW || 1, canvasH || 1);
+  if (!mergedSmooth) return;
 
   const overlay = selCtx.createImageData(canvasW, canvasH);
   const d = overlay.data;
   for (let i = 0; i < canvasW * canvasH; i++) {
-    const v = smoothMask[i];
-    if (v > 10) {
+    const v = mergedSmooth[i];
+    if (v > 8) {
       d[i * 4] = 0;
       d[i * 4 + 1] = 200;
       d[i * 4 + 2] = 255;
@@ -342,20 +413,97 @@ function drawSelectionOverlay() {
   selCtx.putImageData(overlay, 0, 0);
 }
 
-function clearSelection() {
-  hasSelection = false;
-  selectionMask = null;
-  smoothMask = null;
+// --- Create new selection at tap point ---
+function createSelection(tapX, tapY) {
+  if (!isRunning || !canvasW || !canvasH) return;
+
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  ctx.drawImage(video, 0, 0, canvasW, canvasH);
+
+  const SCALE = 3;
+  const sw = Math.ceil(canvasW / SCALE);
+  const sh = Math.ceil(canvasH / SCALE);
+
+  status.textContent = '🔄 Analyseren...';
+
+  setTimeout(() => {
+    const temp = document.createElement('canvas');
+    temp.width = sw; temp.height = sh;
+    const tCtx = temp.getContext('2d');
+    tCtx.drawImage(canvas, 0, 0, sw, sh);
+    const imgData = tCtx.getImageData(0, 0, sw, sh);
+
+    const sx = Math.round(tapX / SCALE);
+    const sy = Math.round(tapY / SCALE);
+
+    let edges = edgeMap;
+    if (!edges) {
+      edges = computeEdges(imgData);
+      edgeMap = edges;
+    }
+
+    let motion = null;
+    let mw = 0;
+    if (depthAssist && prevFrame) {
+      const fullData = ctx.getImageData(0, 0, canvasW, canvasH);
+      motionMap = computeMotion(fullData.data, prevFrame, canvasW, canvasH);
+      prevFrame = new Uint8Array(fullData.data);
+      motion = motionMap;
+      mw = Math.ceil(canvasW / MOTION_BLOCK);
+    } else if (depthAssist && !prevFrame) {
+      const fullData = ctx.getImageData(0, 0, canvasW, canvasH);
+      prevFrame = new Uint8Array(fullData.data);
+    }
+
+    const result = smartFloodFill(
+      imgData,
+      Math.min(sx, sw - 1), Math.min(sy, sh - 1),
+      edges, motion, mw
+    );
+
+    if (result.count < 50) {
+      status.textContent = '⚠️ Te klein gebied, probeer opnieuw';
+      return;
+    }
+
+    const smooth = buildSmoothFromBinary(result.mask, sw, sh);
+
+    selections.push({ mask: result.mask, smoothMask: smooth, sw, sh });
+    mergeSelections();
+
+    if (depthAssist) {
+      depthHint.textContent = `📐 Diepte-assistentie aan\nBeweeg camera voor vlakken`;
+      depthHint.style.opacity = '1';
+    }
+
+    status.textContent = `✅ Vlak ${selections.length} geselecteerd — tik verder of kies kleur`;
+    setTimeout(() => {
+      status.textContent = selections.length > 0
+        ? `✅ ${selections.length} vlak(ken) — tik om toe te voegen`
+        : '👆 Tik op een vlak';
+    }, 2500);
+  }, 10);
+}
+
+function clearAllSelections() {
+  selections = [];
+  mergedSmooth = null;
+  edgeMap = null;
+  prevFrame = null;
+  motionMap = null;
   selCanvas.width = canvasW || 1;
   selCanvas.height = canvasH || 1;
   selCtx.clearRect(0, 0, canvasW || 1, canvasH || 1);
   resultCanvas.width = canvasW || 1;
   resultCanvas.height = canvasH || 1;
   resultCtx.clearRect(0, 0, canvasW || 1, canvasH || 1);
-  selectionInfo.style.opacity = '0';
+  selectionBar.textContent = '👆 Tik op een vlak om te selecteren';
   status.textContent = '👆 Tik op een vlak om te selecteren';
+  depthHint.style.opacity = '0';
 }
 
+// --- Main render loop ---
 function processFrame() {
   if (!isRunning) return;
   const w = video.videoWidth, h = video.videoHeight;
@@ -367,7 +515,7 @@ function processFrame() {
   canvas.height = h;
   ctx.drawImage(video, 0, 0, w, h);
 
-  if (hasSelection && smoothMask) {
+  if (mergedSmooth) {
     resultCanvas.width = w;
     resultCanvas.height = h;
     resultCtx.drawImage(canvas, 0, 0, w, h);
@@ -376,23 +524,36 @@ function processFrame() {
     const d = imgData.data;
     const rgb = hexToRgb(currentColor);
 
+    if (preserveShadows) {
+      let sMin = 255, sMax = 0;
+      for (let i = 0; i < w * h; i++) {
+        if (mergedSmooth[i] > 10) {
+          const l = lumFromData(d, i * 4);
+          if (l < sMin) sMin = l;
+          if (l > sMax) sMax = l;
+        }
+      }
+      if (sMax - sMin < 5) { sMin = 0; sMax = 255; }
+      shadowMin = sMin;
+      shadowMax = Math.max(sMax, sMin + 1);
+    }
+
     for (let i = 0; i < w * h; i++) {
-      const weight = smoothMask[i] / 255;
+      const weight = mergedSmooth[i] / 255;
       if (weight <= 0.01) continue;
       const idx = i * 4;
       const t = weight * opacity;
 
       if (preserveShadows) {
-        const origIdx = idx;
-        const lum = 0.299 * d[origIdx] + 0.587 * d[origIdx + 1] + 0.114 * d[origIdx + 2];
+        const lum = lumFromData(d, idx);
         const norm = (lum - shadowMin) / (shadowMax - shadowMin);
         const f = Math.max(0, Math.min(1, norm));
-        const adjustedR = rgb.r * (0.15 + 0.85 * f);
-        const adjustedG = rgb.g * (0.15 + 0.85 * f);
-        const adjustedB = rgb.b * (0.15 + 0.85 * f);
-        d[idx] = d[idx] * (1 - t) + adjustedR * t;
-        d[idx + 1] = d[idx + 1] * (1 - t) + adjustedG * t;
-        d[idx + 2] = d[idx + 2] * (1 - t) + adjustedB * t;
+        const ar = rgb.r * (0.15 + 0.85 * f);
+        const ag = rgb.g * (0.15 + 0.85 * f);
+        const ab = rgb.b * (0.15 + 0.85 * f);
+        d[idx] = d[idx] * (1 - t) + ar * t;
+        d[idx + 1] = d[idx + 1] * (1 - t) + ag * t;
+        d[idx + 2] = d[idx + 2] * (1 - t) + ab * t;
       } else {
         d[idx] = d[idx] * (1 - t) + rgb.r * t;
         d[idx + 1] = d[idx + 1] * (1 - t) + rgb.g * t;
@@ -405,19 +566,17 @@ function processFrame() {
   animationId = requestAnimationFrame(processFrame);
 }
 
+// --- Brush ---
 let brushSize = 60;
 let isPainting = false;
 
 function getCanvasCoords(e) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY
-  };
+  const sx = canvas.width / rect.width;
+  const sy = canvas.height / rect.height;
+  const cx = e.touches ? e.touches[0].clientX : e.clientX;
+  const cy = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: (cx - rect.left) * sx, y: (cy - rect.top) * sy };
 }
 
 function paintAt(x, y) {
@@ -444,29 +603,28 @@ function paintAt(x, y) {
   resultCtx.putImageData(imgData, 0, 0);
 }
 
+// --- Events ---
 canvas.addEventListener('click', (e) => {
   if (tool !== 'select') return;
-  const coords = getCanvasCoords(e);
-  createSelection(Math.round(coords.x), Math.round(coords.y));
+  const c = getCanvasCoords(e);
+  createSelection(Math.round(c.x), Math.round(c.y));
 });
 
 canvas.addEventListener('touchstart', (e) => {
   if (tool !== 'select') return;
-  const coords = getCanvasCoords(e);
-  createSelection(Math.round(coords.x), Math.round(coords.y));
+  const c = getCanvasCoords(e);
+  createSelection(Math.round(c.x), Math.round(c.y));
 }, { passive: true });
 
 canvas.addEventListener('mousedown', (e) => {
   if (tool !== 'brush') return;
   isPainting = true;
-  const coords = getCanvasCoords(e);
-  paintAt(coords.x, coords.y);
+  paintAt(getCanvasCoords(e).x, getCanvasCoords(e).y);
 });
 
 canvas.addEventListener('mousemove', (e) => {
   if (tool !== 'brush' || !isPainting) return;
-  const coords = getCanvasCoords(e);
-  paintAt(coords.x, coords.y);
+  paintAt(getCanvasCoords(e).x, getCanvasCoords(e).y);
 });
 
 document.addEventListener('mouseup', () => { isPainting = false; });
@@ -474,14 +632,12 @@ document.addEventListener('mouseup', () => { isPainting = false; });
 canvas.addEventListener('touchstart', (e) => {
   if (tool !== 'brush') return;
   isPainting = true;
-  const coords = getCanvasCoords(e);
-  paintAt(coords.x, coords.y);
+  paintAt(getCanvasCoords(e).x, getCanvasCoords(e).y);
 }, { passive: true });
 
 canvas.addEventListener('touchmove', (e) => {
   if (tool !== 'brush' || !isPainting) return;
-  const coords = getCanvasCoords(e);
-  paintAt(coords.x, coords.y);
+  paintAt(getCanvasCoords(e).x, getCanvasCoords(e).y);
 }, { passive: true });
 
 canvas.addEventListener('touchend', () => { isPainting = false; }, { passive: true });
@@ -499,7 +655,7 @@ async function startCamera() {
     isRunning = true;
     processFrame();
   } catch (err) {
-    status.textContent = '❌ Camera niet beschikbaar: ' + err.message;
+    status.textContent = '❌ Camera fout: ' + err.message;
     startBtn.textContent = 'Probeer opnieuw';
   }
 }
@@ -530,9 +686,9 @@ modeSelect.addEventListener('click', () => {
   modeSelect.classList.add('active');
   modeBrush.classList.remove('active');
   canvas.style.cursor = 'crosshair';
-  selectionInfo.style.opacity = hasSelection ? '1' : '0';
-  if (hasSelection) status.textContent = '🎨 Tik op een ander vlak of kies een kleur';
-  else status.textContent = '👆 Tik op een vlak om te selecteren';
+  status.textContent = selections.length > 0
+    ? `✅ ${selections.length} vlak(ken) — tik om toe te voegen`
+    : '👆 Tik op een vlak om te selecteren';
 });
 
 modeBrush.addEventListener('click', () => {
@@ -540,19 +696,28 @@ modeBrush.addEventListener('click', () => {
   modeBrush.classList.add('active');
   modeSelect.classList.remove('active');
   canvas.style.cursor = 'none';
-  selectionInfo.style.opacity = '0';
   status.textContent = '🖌️ Sleep over het beeld om te verven';
 });
 
-shadowToggle.classList.add('active');
-
-clearBtn.addEventListener('click', clearSelection);
+clearBtn.addEventListener('click', clearAllSelections);
 
 shadowToggle.addEventListener('click', () => {
   preserveShadows = !preserveShadows;
   shadowToggle.classList.toggle('active', preserveShadows);
-  shadowToggle.textContent = preserveShadows ? '🌓 Schaduw' : '☀️ Geen schaduw';
+  shadowToggle.textContent = preserveShadows ? '🌓 Schaduw' : '☀️ Effen';
 });
+
+depthToggle.addEventListener('click', () => {
+  depthAssist = !depthAssist;
+  depthToggle.classList.toggle('active', depthAssist);
+  depthToggle.textContent = depthAssist ? '📐 Diepte aan' : '📐 Diepte uit';
+  if (!depthAssist) {
+    prevFrame = null;
+    depthHint.style.opacity = '0';
+  }
+});
+
+shadowToggle.classList.add('active');
 
 uiToggle.addEventListener('click', () => {
   ui.classList.toggle('collapsed');
