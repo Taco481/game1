@@ -3,73 +3,90 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PaintAR - Verf Visualizer</title>
+<title>PaintAR - Selecteer & Verf</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: system-ui, -apple-system, sans-serif; background: #000; overflow: hidden; height: 100vh; touch-action: none; }
 
 #container { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 #video { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-#canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+#canvas { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); cursor: crosshair; z-index: 3; }
 
-#overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
-#colorOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+#selectionCanvas { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; z-index: 2; }
+#resultCanvas { position: absolute; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); pointer-events: none; z-index: 4; }
 
 #ui {
   position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
   background: linear-gradient(transparent, rgba(0,0,0,0.85));
   padding: 60px 20px 30px;
   pointer-events: none;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 #ui > * { pointer-events: auto; }
+
+#ui.collapsed {
+  transform: translateY(calc(100% - 50px));
+  opacity: 0.6;
+}
+#ui.collapsed #colorPicker,
+#ui.collapsed #controls { opacity: 0; pointer-events: none; }
+#ui-toggle {
+  position: absolute; top: 5px; right: 20px;
+  font-size: 20px; cursor: pointer; opacity: 0.5;
+  transition: opacity 0.15s; pointer-events: auto;
+}
+#ui-toggle:hover { opacity: 1; }
 
 #colorPicker {
   display: flex; gap: 10px; align-items: center;
   background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 20px; padding: 16px 20px;
+  border-radius: 20px; padding: 12px 16px;
   border: 1px solid rgba(255,255,255,0.1);
   flex-wrap: wrap;
+  transition: opacity 0.3s;
 }
 
 #colorPicker input[type="color"] {
-  width: 48px; height: 48px; border: 2px solid rgba(255,255,255,0.3);
-  border-radius: 12px; cursor: pointer; background: none; padding: 2px;
+  width: 44px; height: 44px; border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 10px; cursor: pointer; background: none; padding: 2px;
 }
 #colorPicker input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-#colorPicker input[type="color"]::-webkit-color-swatch { border: none; border-radius: 8px; }
+#colorPicker input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
 
-.presets { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+.presets { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
 .preset {
-  width: 40px; height: 40px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
+  width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
   cursor: pointer; transition: transform 0.15s; flex-shrink: 0;
 }
 .preset:hover, .preset.active { transform: scale(1.15); border-color: white; }
 
-#controls { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
-#controls label { color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 500; }
-#controls input[type="range"] { flex: 1; min-width: 100px; accent-color: white; height: 4px; }
-#opacityValue { color: white; font-size: 13px; font-weight: 600; min-width: 32px; text-align: right; }
+#controls { display: flex; gap: 8px; margin-top: 10px; align-items: center; flex-wrap: wrap; transition: opacity 0.3s; }
+#controls label { color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 500; white-space: nowrap; }
+#controls input[type="range"] { flex: 1; min-width: 80px; accent-color: white; height: 4px; }
+#opacityValue { color: white; font-size: 12px; font-weight: 600; min-width: 28px; text-align: right; }
 
-#modeToggle {
-  font-size: 13px; font-weight: 600; color: white;
+.tool-btn {
+  font-size: 12px; font-weight: 600; color: white;
   background: rgba(255,255,255,0.15); backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 30px; padding: 8px 18px; cursor: pointer;
+  border-radius: 30px; padding: 7px 14px; cursor: pointer;
   white-space: nowrap; transition: background 0.15s;
 }
-#modeToggle:hover { background: rgba(255,255,255,0.25); }
+.tool-btn:hover { background: rgba(255,255,255,0.25); }
+.tool-btn.active { background: rgba(255,255,255,0.3); border-color: white; }
 
 #status {
-  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
   z-index: 10; color: white;
   background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  padding: 10px 24px; border-radius: 30px;
-  font-size: 14px; font-weight: 500;
+  padding: 8px 20px; border-radius: 30px;
+  font-size: 13px; font-weight: 500;
   border: 1px solid rgba(255,255,255,0.1);
   text-align: center;
+  transition: opacity 0.3s;
 }
 #startBtn {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -81,12 +98,13 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
 }
 #startBtn:hover { transform: translate(-50%, -50%) scale(1.05); }
 
-#brushPreview {
-  position: absolute; width: 80px; height: 80px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
-  pointer-events: none; z-index: 5;
-  transform: translate(-50%, -50%);
-  display: none;
+#selectionInfo {
+  position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+  z-index: 8; color: white; font-size: 12px; font-weight: 500;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(8px);
+  padding: 5px 14px; border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.1);
+  opacity: 0; transition: opacity 0.3s;
 }
 </style>
 </head>
@@ -95,15 +113,15 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
 <div id="container">
   <video id="video" playsinline autoplay muted></video>
   <canvas id="canvas"></canvas>
-  <div id="overlay">
-    <div id="colorOverlay"></div>
-  </div>
-  <div id="brushPreview"></div>
+  <canvas id="selectionCanvas"></canvas>
+  <canvas id="resultCanvas"></canvas>
 
   <div id="status">📱 Tik op Start om de camera te openen</div>
   <button id="startBtn">Start Camera</button>
+  <div id="selectionInfo"></div>
 
   <div id="ui">
+    <div id="ui-toggle">▼</div>
     <div id="colorPicker">
       <input type="color" id="mainColor" value="#4A90D9">
       <div class="presets">
@@ -119,10 +137,12 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
       </div>
     </div>
     <div id="controls">
-      <label>Dekking</label>
-      <input type="range" id="opacitySlider" min="10" max="100" value="40">
-      <span id="opacityValue">40%</span>
-      <button id="modeToggle">🎨 Overlay</button>
+      <label>Sterkte</label>
+      <input type="range" id="opacitySlider" min="10" max="100" value="70">
+      <span id="opacityValue">70%</span>
+      <button class="tool-btn active" id="modeSelect">🖱️ Selecteer</button>
+      <button class="tool-btn" id="modeBrush">🖌️ Penseel</button>
+      <button class="tool-btn" id="clearBtn">✕ Wis</button>
     </div>
   </div>
 </div>
@@ -131,92 +151,326 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
-const colorOverlay = document.getElementById('colorOverlay');
+const selCanvas = document.getElementById('selectionCanvas');
+const selCtx = selCanvas.getContext('2d');
+const resultCanvas = document.getElementById('resultCanvas');
+const resultCtx = resultCanvas.getContext('2d');
+
 const colorPicker = document.getElementById('mainColor');
 const opacitySlider = document.getElementById('opacitySlider');
 const opacityValue = document.getElementById('opacityValue');
-const modeToggle = document.getElementById('modeToggle');
 const status = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
-const brushPreview = document.getElementById('brushPreview');
 const presets = document.querySelectorAll('.preset');
+const selectionInfo = document.getElementById('selectionInfo');
+const modeSelect = document.getElementById('modeSelect');
+const modeBrush = document.getElementById('modeBrush');
+const clearBtn = document.getElementById('clearBtn');
+const ui = document.getElementById('ui');
+const uiToggle = document.getElementById('ui-toggle');
 
 let stream = null;
 let currentColor = '#4A90D9';
-let opacity = 0.4;
-let mode = 'overlay'; // 'overlay' | 'paint' | 'mix'
+let opacity = 0.7;
 let animationId = null;
 let isRunning = false;
 
+let tool = 'select';
+let canvasW = 0, canvasH = 0;
+let selectionMask = null;
+let hasSelection = false;
+
+const TOLERANCE = 30;
+const SCALE = 4;
+
+// --- Helpers ---
 function hexToRgb(hex) {
-  const r = parseInt(hex.slice(1,3), 16);
-  const g = parseInt(hex.slice(3,5), 16);
-  const b = parseInt(hex.slice(5,7), 16);
-  return { r, g, b };
+  return {
+    r: parseInt(hex.slice(1,3), 16),
+    g: parseInt(hex.slice(3,5), 16),
+    b: parseInt(hex.slice(5,7), 16)
+  };
 }
 
-function hexToHsl(hex) {
-  let r = parseInt(hex.slice(1,3), 16) / 255;
-  let g = parseInt(hex.slice(3,5), 16) / 255;
-  let b = parseInt(hex.slice(5,7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h, s, l = (max + min) / 2;
-  if (max === min) { h = s = 0; }
-  else {
-    const d = max - min;
-    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-    switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-      case g: h = ((b - r) / d + 2) / 6; break;
-      case b: h = ((r - g) / d + 4) / 6; break;
+function colorDist(c1, c2) {
+  const dr = c1[0] - c2[0], dg = c1[1] - c2[1], db = c1[2] - c2[2];
+  return Math.sqrt(dr*dr + dg*dg + db*db);
+}
+
+function getPixel(data, w, x, y) {
+  const i = (y * w + x) * 4;
+  return [data[i], data[i+1], data[i+2]];
+}
+
+// --- Flood Fill (scanline-based, efficient) ---
+function floodFill(imageData, startX, startY, tolerance) {
+  const w = imageData.width, h = imageData.height;
+  const data = imageData.data;
+  const visited = new Uint8Array(w * h);
+  const mask = new Uint8Array(w * h);
+
+  const targetColor = getPixel(data, w, startX, startY);
+  const queue = [[startX, startY]];
+  visited[startY * w + startX] = 1;
+  let count = 0;
+
+  while (queue.length > 0) {
+    const [x, y] = queue.shift();
+    const idx = y * w + x;
+    mask[idx] = 1;
+    count++;
+
+    const px = getPixel(data, w, x, y);
+    if (colorDist(px, targetColor) > tolerance) continue;
+
+    for (const [nx, ny] of [[x-1,y],[x+1,y],[x,y-1],[x,y+1]]) {
+      if (nx < 0 || nx >= w || ny < 0 || ny >= h) continue;
+      const nidx = ny * w + nx;
+      if (visited[nidx]) continue;
+      visited[nidx] = 1;
+      const np = getPixel(data, w, nx, ny);
+      if (colorDist(np, targetColor) <= tolerance) {
+        queue.push([nx, ny]);
+      }
     }
   }
-  return { h: h * 360, s: s * 100, l: l * 100 };
+  return { mask, count };
 }
 
+// --- Create selection at reduced scale ---
+function createSelection(tapX, tapY) {
+  if (!isRunning || !canvasW || !canvasH) return;
+
+  canvas.width = canvasW;
+  canvas.height = canvasH;
+  ctx.drawImage(video, 0, 0, canvasW, canvasH);
+
+  const sw = Math.ceil(canvasW / SCALE);
+  const sh = Math.ceil(canvasH / SCALE);
+
+  const tempCanvas = document.createElement('canvas');
+  tempCanvas.width = sw;
+  tempCanvas.height = sh;
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.drawImage(canvas, 0, 0, sw, sh);
+  const imgData = tempCtx.getImageData(0, 0, sw, sh);
+
+  const sx = Math.round(tapX / SCALE);
+  const sy = Math.round(tapY / SCALE);
+
+  status.textContent = '🔄 Bezig met selecteren...';
+  setTimeout(() => {
+    const result = floodFill(imgData, Math.min(sx, sw-1), Math.min(sy, sh-1), TOLERANCE);
+
+    if (result.count < 50) {
+      status.textContent = '⚠️ Te klein gebied, probeer een duidelijker vlak';
+      return;
+    }
+
+    selectionMask = result.mask;
+    hasSelection = true;
+    drawSelectionOverlay(sw, sh);
+    selectionInfo.textContent = `✅ ${result.count} pixels geselecteerd`;
+    selectionInfo.style.opacity = '1';
+    status.textContent = '🎨 Tik op een ander vlak of kies een kleur';
+    setTimeout(() => { selectionInfo.style.opacity = '0'; }, 3000);
+  }, 10);
+}
+
+function drawSelectionOverlay(sw, sh) {
+  selCanvas.width = canvasW;
+  selCanvas.height = canvasH;
+  selCtx.clearRect(0, 0, canvasW, canvasH);
+
+  const overlay = selCtx.createImageData(canvasW, canvasH);
+  const d = overlay.data;
+
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      if (selectionMask[y * sw + x]) {
+        for (let dy = 0; dy < SCALE; dy++) {
+          for (let dx = 0; dx < SCALE; dx++) {
+            const px = x * SCALE + dx;
+            const py = y * SCALE + dy;
+            if (px < canvasW && py < canvasH) {
+              const i = (py * canvasW + px) * 4;
+              d[i] = 255; d[i+1] = 255; d[i+2] = 255; d[i+3] = 40;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (let y = 0; y < sh; y++) {
+    for (let x = 0; x < sw; x++) {
+      if (!selectionMask[y * sw + x]) continue;
+      for (let dy = 0; dy < SCALE; dy++) {
+        const px = x * SCALE;
+        const py = y * SCALE + dy;
+        if (py < canvasH) {
+          const i = (py * canvasW + px) * 4;
+          if (px > 0 && !selectionMask[y * sw + Math.max(x-1,0)]) {
+            d[i] = 0; d[i+1] = 200; d[i+2] = 255; d[i+3] = 200;
+          }
+        }
+      }
+      for (let dx = 0; dx < SCALE; dx++) {
+        const px = x * SCALE + dx;
+        const py = y * SCALE;
+        if (px < canvasW) {
+          const i = (py * canvasW + px) * 4;
+          if (y > 0 && !selectionMask[(Math.max(y-1,0)) * sw + x]) {
+            d[i] = 0; d[i+1] = 200; d[i+2] = 255; d[i+3] = 200;
+          }
+        }
+      }
+    }
+  }
+  selCtx.putImageData(overlay, 0, 0);
+}
+
+function clearSelection() {
+  hasSelection = false;
+  selectionMask = null;
+  selCanvas.width = canvasW;
+  selCanvas.height = canvasH;
+  selCtx.clearRect(0, 0, canvasW, canvasH);
+  resultCanvas.width = canvasW;
+  resultCanvas.height = canvasH;
+  resultCtx.clearRect(0, 0, canvasW, canvasH);
+  selectionInfo.style.opacity = '0';
+  status.textContent = '👆 Tik op een vlak om te selecteren';
+}
+
+// --- Main render loop ---
 function processFrame() {
   if (!isRunning) return;
   const w = video.videoWidth, h = video.videoHeight;
   if (!w || !h) { animationId = requestAnimationFrame(processFrame); return; }
+  canvasW = w;
+  canvasH = h;
+
   canvas.width = w;
   canvas.height = h;
+  ctx.drawImage(video, 0, 0, w, h);
 
-  if (mode === 'overlay') {
-    ctx.drawImage(video, 0, 0, w, h);
+  if (hasSelection && selectionMask) {
+    resultCanvas.width = w;
+    resultCanvas.height = h;
+    resultCtx.drawImage(canvas, 0, 0, w, h);
+
+    const imgData = resultCtx.getImageData(0, 0, w, h);
+    const d = imgData.data;
     const rgb = hexToRgb(currentColor);
-    ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
-    ctx.fillRect(0, 0, w, h);
-  } else if (mode === 'paint') {
-    ctx.drawImage(video, 0, 0, w, h);
-    const imageData = ctx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-    const rgb = hexToRgb(currentColor);
-    for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i+1] + data[i+2]) / 3;
-      const t = opacity;
-      data[i] = data[i] * (1 - t) + (data[i] * 0.3 + rgb.r * 0.7) * t;
-      data[i+1] = data[i+1] * (1 - t) + (data[i+1] * 0.3 + rgb.g * 0.7) * t;
-      data[i+2] = data[i+2] * (1 - t) + (data[i+2] * 0.3 + rgb.b * 0.7) * t;
+    const sw = Math.ceil(w / SCALE);
+    const sh = Math.ceil(h / SCALE);
+
+    for (let y = 0; y < sh; y++) {
+      for (let x = 0; x < sw; x++) {
+        if (!selectionMask[y * sw + x]) continue;
+        for (let dy = 0; dy < SCALE; dy++) {
+          for (let dx = 0; dx < SCALE; dx++) {
+            const px = x * SCALE + dx;
+            const py = y * SCALE + dy;
+            if (px >= w || py >= h) continue;
+            const i = (py * w + px) * 4;
+            d[i] = d[i] * (1 - opacity) + rgb.r * opacity;
+            d[i+1] = d[i+1] * (1 - opacity) + rgb.g * opacity;
+            d[i+2] = d[i+2] * (1 - opacity) + rgb.b * opacity;
+          }
+        }
+      }
     }
-    ctx.putImageData(imageData, 0, 0);
-  } else if (mode === 'mix') {
-    ctx.drawImage(video, 0, 0, w, h);
-    const imageData = ctx.getImageData(0, 0, w, h);
-    const data = imageData.data;
-    const rgb = hexToRgb(currentColor);
-    const hsl = hexToHsl(currentColor);
-    for (let i = 0; i < data.length; i += 4) {
-      const t = opacity;
-      const gray = (data[i] + data[i+1] + data[i+2]) / 3;
-      const base = gray / 255;
-      data[i] = data[i] * (1 - t * 0.5) + (rgb.r * base + data[i] * (1 - base)) * t * 0.5;
-      data[i+1] = data[i+1] * (1 - t * 0.5) + (rgb.g * base + data[i+1] * (1 - base)) * t * 0.5;
-      data[i+2] = data[i+2] * (1 - t * 0.5) + (rgb.b * base + data[i+2] * (1 - base)) * t * 0.5;
-    }
-    ctx.putImageData(imageData, 0, 0);
+    resultCtx.putImageData(imgData, 0, 0);
   }
+
   animationId = requestAnimationFrame(processFrame);
 }
+
+// --- Brush paint mode ---
+let brushSize = 60;
+let isPainting = false;
+
+function getCanvasCoords(e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+function paintAt(x, y) {
+  if (!canvasW || !canvasH) return;
+  resultCanvas.width = canvasW;
+  resultCanvas.height = canvasH;
+  resultCtx.drawImage(canvas, 0, 0, canvasW, canvasH);
+
+  const imgData = resultCtx.getImageData(0, 0, canvasW, canvasH);
+  const d = imgData.data;
+  const rgb = hexToRgb(currentColor);
+  const r2 = (brushSize / 2) * (brushSize / 2);
+
+  for (let py = Math.max(0, y - brushSize/2); py < Math.min(canvasH, y + brushSize/2); py++) {
+    for (let px = Math.max(0, x - brushSize/2); px < Math.min(canvasW, x + brushSize/2); px++) {
+      const dx = px - x, dy = py - y;
+      if (dx*dx + dy*dy > r2) continue;
+      const i = (py * canvasW + px) * 4;
+      const t = opacity;
+      d[i] = d[i] * (1 - t) + rgb.r * t;
+      d[i+1] = d[i+1] * (1 - t) + rgb.g * t;
+      d[i+2] = d[i+2] * (1 - t) + rgb.b * t;
+    }
+  }
+  resultCtx.putImageData(imgData, 0, 0);
+}
+
+// --- Event listeners ---
+canvas.addEventListener('click', (e) => {
+  if (tool !== 'select') return;
+  const coords = getCanvasCoords(e);
+  createSelection(Math.round(coords.x), Math.round(coords.y));
+});
+
+canvas.addEventListener('touchstart', (e) => {
+  if (tool !== 'select') return;
+  const coords = getCanvasCoords(e);
+  createSelection(Math.round(coords.x), Math.round(coords.y));
+}, { passive: true });
+
+canvas.addEventListener('mousedown', (e) => {
+  if (tool !== 'brush') return;
+  isPainting = true;
+  const coords = getCanvasCoords(e);
+  paintAt(coords.x, coords.y);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (tool !== 'brush' || !isPainting) return;
+  const coords = getCanvasCoords(e);
+  paintAt(coords.x, coords.y);
+});
+
+document.addEventListener('mouseup', () => { isPainting = false; });
+
+canvas.addEventListener('touchstart', (e) => {
+  if (tool !== 'brush') return;
+  isPainting = true;
+  const coords = getCanvasCoords(e);
+  paintAt(coords.x, coords.y);
+}, { passive: true });
+
+canvas.addEventListener('touchmove', (e) => {
+  if (tool !== 'brush' || !isPainting) return;
+  const coords = getCanvasCoords(e);
+  paintAt(coords.x, coords.y);
+}, { passive: true });
+
+canvas.addEventListener('touchend', () => { isPainting = false; }, { passive: true });
 
 async function startCamera() {
   try {
@@ -227,7 +481,7 @@ async function startCamera() {
     video.srcObject = stream;
     await video.play();
     startBtn.style.display = 'none';
-    status.style.display = 'none';
+    status.textContent = '👆 Tik op een vlak om te selecteren';
     isRunning = true;
     processFrame();
   } catch (err) {
@@ -240,7 +494,6 @@ startBtn.addEventListener('click', startCamera);
 
 colorPicker.addEventListener('input', () => {
   currentColor = colorPicker.value;
-  updateOverlay();
   presets.forEach(p => p.classList.toggle('active', p.dataset.color === currentColor));
 });
 
@@ -250,7 +503,6 @@ presets.forEach(p => {
     p.classList.add('active');
     currentColor = p.dataset.color;
     colorPicker.value = currentColor;
-    updateOverlay();
   });
 });
 
@@ -259,19 +511,35 @@ opacitySlider.addEventListener('input', () => {
   opacityValue.textContent = Math.round(opacity * 100) + '%';
 });
 
-modeToggle.addEventListener('click', () => {
-  if (mode === 'overlay') { mode = 'paint'; modeToggle.textContent = '🖌️ Verf'; }
-  else if (mode === 'paint') { mode = 'mix'; modeToggle.textContent = '🎨 Mix'; }
-  else { mode = 'overlay'; modeToggle.textContent = '🎨 Overlay'; }
+modeSelect.addEventListener('click', () => {
+  tool = 'select';
+  modeSelect.classList.add('active');
+  modeBrush.classList.remove('active');
+  canvas.style.cursor = 'crosshair';
+  selectionInfo.style.opacity = hasSelection ? '1' : '0';
+  if (hasSelection) status.textContent = '🎨 Tik op een ander vlak of kies een kleur';
+  else status.textContent = '👆 Tik op een vlak om te selecteren';
 });
 
-function updateOverlay() {
-  const rgb = hexToRgb(currentColor);
-  colorOverlay.style.background = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
-}
+modeBrush.addEventListener('click', () => {
+  tool = 'brush';
+  modeBrush.classList.add('active');
+  modeSelect.classList.remove('active');
+  canvas.style.cursor = 'none';
+  selectionInfo.style.opacity = '0';
+  status.textContent = '🖌️ Sleep over het beeld om te verven';
+});
+
+clearBtn.addEventListener('click', clearSelection);
+
+uiToggle.addEventListener('click', () => {
+  ui.classList.toggle('collapsed');
+  uiToggle.textContent = ui.classList.contains('collapsed') ? '▲' : '▼';
+});
 
 document.addEventListener('DOMContentLoaded', () => {
-  updateOverlay();
+  selCanvas.width = 0; selCanvas.height = 0;
+  resultCanvas.width = 0; resultCanvas.height = 0;
 });
 </script>
 </body>
