@@ -183,6 +183,7 @@ let selectionMask = null;
 let smoothMask = null;
 let hasSelection = false;
 let preserveShadows = true;
+let shadowMin = 0, shadowMax = 1;
 
 const TOLERANCE = 30;
 const SCALE = 2;
@@ -267,6 +268,19 @@ function buildSmoothMask(sw, sh) {
   for (let i = 0; i < canvasW * canvasH; i++) {
     smoothMask[i] = smoothData.data[i * 4];
   }
+
+  const origData = ctx.getImageData(0, 0, canvasW, canvasH).data;
+  let sMin = 255, sMax = 0;
+  for (let i = 0; i < canvasW * canvasH; i++) {
+    if (smoothMask[i] > 10) {
+      const idx = i * 4;
+      const lum = 0.299 * origData[idx] + 0.587 * origData[idx + 1] + 0.114 * origData[idx + 2];
+      if (lum < sMin) sMin = lum;
+      if (lum > sMax) sMax = lum;
+    }
+  }
+  shadowMin = sMin;
+  shadowMax = Math.max(sMax, sMin + 1);
 }
 
 function createSelection(tapX, tapY) {
@@ -369,10 +383,13 @@ function processFrame() {
       const t = weight * opacity;
 
       if (preserveShadows) {
-        const lum = (0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2]) / 255;
-        const adjustedR = rgb.r * (0.2 + 0.8 * lum);
-        const adjustedG = rgb.g * (0.2 + 0.8 * lum);
-        const adjustedB = rgb.b * (0.2 + 0.8 * lum);
+        const origIdx = idx;
+        const lum = 0.299 * d[origIdx] + 0.587 * d[origIdx + 1] + 0.114 * d[origIdx + 2];
+        const norm = (lum - shadowMin) / (shadowMax - shadowMin);
+        const f = Math.max(0, Math.min(1, norm));
+        const adjustedR = rgb.r * (0.15 + 0.85 * f);
+        const adjustedG = rgb.g * (0.15 + 0.85 * f);
+        const adjustedB = rgb.b * (0.15 + 0.85 * f);
         d[idx] = d[idx] * (1 - t) + adjustedR * t;
         d[idx + 1] = d[idx + 1] * (1 - t) + adjustedG * t;
         d[idx + 2] = d[idx + 2] * (1 - t) + adjustedB * t;
