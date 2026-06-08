@@ -140,6 +140,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
       <label>Sterkte</label>
       <input type="range" id="opacitySlider" min="10" max="100" value="70">
       <span id="opacityValue">70%</span>
+      <button class="tool-btn" id="shadowToggle">🌓 Schaduw</button>
       <button class="tool-btn active" id="modeSelect">🖱️ Selecteer</button>
       <button class="tool-btn" id="modeBrush">🖌️ Penseel</button>
       <button class="tool-btn" id="clearBtn">✕ Wis</button>
@@ -166,6 +167,7 @@ const selectionInfo = document.getElementById('selectionInfo');
 const modeSelect = document.getElementById('modeSelect');
 const modeBrush = document.getElementById('modeBrush');
 const clearBtn = document.getElementById('clearBtn');
+const shadowToggle = document.getElementById('shadowToggle');
 const ui = document.getElementById('ui');
 const uiToggle = document.getElementById('ui-toggle');
 
@@ -180,6 +182,7 @@ let canvasW = 0, canvasH = 0;
 let selectionMask = null;
 let smoothMask = null;
 let hasSelection = false;
+let preserveShadows = true;
 
 const TOLERANCE = 30;
 const SCALE = 2;
@@ -361,9 +364,19 @@ function processFrame() {
 
     for (let i = 0; i < w * h; i++) {
       const weight = smoothMask[i] / 255;
-      if (weight > 0.01) {
-        const t = weight * opacity;
-        const idx = i * 4;
+      if (weight <= 0.01) continue;
+      const idx = i * 4;
+      const t = weight * opacity;
+
+      if (preserveShadows) {
+        const lum = (0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2]) / 255;
+        const adjustedR = rgb.r * (0.2 + 0.8 * lum);
+        const adjustedG = rgb.g * (0.2 + 0.8 * lum);
+        const adjustedB = rgb.b * (0.2 + 0.8 * lum);
+        d[idx] = d[idx] * (1 - t) + adjustedR * t;
+        d[idx + 1] = d[idx + 1] * (1 - t) + adjustedG * t;
+        d[idx + 2] = d[idx + 2] * (1 - t) + adjustedB * t;
+      } else {
         d[idx] = d[idx] * (1 - t) + rgb.r * t;
         d[idx + 1] = d[idx + 1] * (1 - t) + rgb.g * t;
         d[idx + 2] = d[idx + 2] * (1 - t) + rgb.b * t;
@@ -514,7 +527,15 @@ modeBrush.addEventListener('click', () => {
   status.textContent = '🖌️ Sleep over het beeld om te verven';
 });
 
+shadowToggle.classList.add('active');
+
 clearBtn.addEventListener('click', clearSelection);
+
+shadowToggle.addEventListener('click', () => {
+  preserveShadows = !preserveShadows;
+  shadowToggle.classList.toggle('active', preserveShadows);
+  shadowToggle.textContent = preserveShadows ? '🌓 Schaduw' : '☀️ Geen schaduw';
+});
 
 uiToggle.addEventListener('click', () => {
   ui.classList.toggle('collapsed');
