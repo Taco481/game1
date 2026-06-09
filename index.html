@@ -102,6 +102,61 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
   text-align: right; pointer-events: none;
   line-height: 1.4; opacity: 0; transition: opacity 0.3s;
 }
+
+#settingsPanel {
+  position: absolute; left: 8px; right: 8px; bottom: 100%;
+  z-index: 12; margin-bottom: 8px;
+  background: rgba(20,20,30,0.92); backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px; border: 1px solid rgba(255,255,255,0.08);
+  padding: 16px;
+  opacity: 0; transform: translateY(10px) scale(0.97);
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+#settingsPanel.open {
+  opacity: 1; transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+#settingsPanel .header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px;
+}
+#settingsPanel .header span {
+  color: white; font-size: 14px; font-weight: 600;
+}
+#settingsPanel .header .close {
+  color: rgba(255,255,255,0.4); font-size: 20px; cursor: pointer;
+  line-height: 1; padding: 0 4px;
+}
+#settingsPanel .header .close:hover { color: white; }
+.setting-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-row .label { color: rgba(255,255,255,0.8); font-size: 13px; }
+.setting-row .desc { color: rgba(255,255,255,0.35); font-size: 11px; margin-top: 2px; }
+.toggle-switch {
+  width: 44px; height: 26px; border-radius: 13px;
+  background: rgba(255,255,255,0.15); cursor: pointer;
+  position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle-switch.active { background: #007aff; }
+.toggle-switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: white; transition: transform 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.toggle-switch.active::after { transform: translateX(18px); }
+
+#backdrop {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 11; background: transparent;
+  display: none;
+}
+#backdrop.open { display: block; }
 </style>
 </head>
 <body>
@@ -115,6 +170,36 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
   <div id="status">📱 Start de camera</div>
   <button id="startBtn">Start Camera</button>
   <div id="trackHint"></div>
+
+  <div id="backdrop"></div>
+
+  <div id="settingsPanel">
+    <div class="header">
+      <span>⚙️ Instellingen</span>
+      <span class="close">✕</span>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="label">🌓 Schaduw</div>
+        <div class="desc">Behoud donkerte uit originele beeld</div>
+      </div>
+      <div class="toggle-switch active" id="shadowToggle"></div>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="label">🎯 Volgen</div>
+        <div class="desc">Selectie blijft op dezelfde plek bij beweging</div>
+      </div>
+      <div class="toggle-switch active" id="trackToggle"></div>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="label">📐 Hoekmeting</div>
+        <div class="desc">Gebruik camerabeweging om vlakken te scheiden</div>
+      </div>
+      <div class="toggle-switch" id="depthToggle"></div>
+    </div>
+  </div>
 
   <div id="ui">
     <div id="ui-toggle">▼</div>
@@ -136,8 +221,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #000; over
       <label>Sterkte</label>
       <input type="range" id="opacitySlider" min="10" max="100" value="70">
       <span id="opacityValue">70%</span>
-      <button class="btn active" id="shadowToggle">🌓 Schaduw</button>
-      <button class="btn active" id="trackToggle">🎯 Track</button>
+      <button class="btn" id="settingsBtn">⚙️</button>
       <button class="btn active" id="modeSelect">🖱️ Selecteer</button>
       <button class="btn" id="modeBrush">🖌️ Penseel</button>
       <button class="btn btn-danger" id="clearBtn">✕ Alles</button>
@@ -168,8 +252,13 @@ const presets = document.querySelectorAll('.preset');
 const modeSelect = document.getElementById('modeSelect');
 const modeBrush = document.getElementById('modeBrush');
 const clearBtn = document.getElementById('clearBtn');
+const settingsBtn = document.getElementById('settingsBtn');
+const settingsPanel = document.getElementById('settingsPanel');
+const settingsClose = settingsPanel.querySelector('.close');
+const backdrop = document.getElementById('backdrop');
 const shadowToggle = document.getElementById('shadowToggle');
 const trackToggle = document.getElementById('trackToggle');
+const depthToggle = document.getElementById('depthToggle');
 const selectionBar = document.querySelector('#selectionBar .label');
 const ui = document.getElementById('ui');
 const uiToggle = document.getElementById('ui-toggle');
@@ -184,6 +273,7 @@ let tool = 'select';
 let canvasW = 0, canvasH = 0;
 let preserveShadows = true;
 let tracking = true;
+let depthAssist = false;
 let shadowMin = 0, shadowMax = 1;
 let isFrontCamera = false;
 
@@ -196,9 +286,6 @@ let currentAlpha = 0, currentBeta = 0, currentGamma = 0;
 let anchorAlpha = null, anchorBeta = null;
 let trackOffsetX = 0, trackOffsetY = 0;
 const PIXELS_PER_DEGREE = 12;
-
-// --- Edge map ---
-let edgeMap = null;
 
 // --- Helpers ---
 function hexToRgb(hex) {
@@ -221,6 +308,35 @@ function lumFromData(data, idx) {
 function colorDist(c1, c2) {
   const dr = c1[0] - c2[0], dg = c1[1] - c2[1], db = c1[2] - c2[2];
   return Math.sqrt(dr*dr + dg*dg + db*db);
+}
+
+// --- Motion (for depth assist) ---
+let prevFrame = null;
+const MOTION_BLOCK = 16;
+
+function computeMotion(currentData, prevData, w, h) {
+  const bw = Math.ceil(w / MOTION_BLOCK);
+  const bh = Math.ceil(h / MOTION_BLOCK);
+  const motion = new Float32Array(bw * bh);
+  if (!prevData) return motion;
+  for (let by = 0; by < bh; by++) {
+    for (let bx = 0; bx < bw; bx++) {
+      let sum = 0, count = 0;
+      const startY = by * MOTION_BLOCK, endY = Math.min(startY + MOTION_BLOCK, h);
+      const startX = bx * MOTION_BLOCK, endX = Math.min(startX + MOTION_BLOCK, w);
+      for (let py = startY; py < endY; py++) {
+        for (let px = startX; px < endX; px++) {
+          const i = (py * w + px) * 4;
+          sum += Math.abs(currentData[i] - prevData[i])
+               + Math.abs(currentData[i+1] - prevData[i+1])
+               + Math.abs(currentData[i+2] - prevData[i+2]);
+          count++;
+        }
+      }
+      motion[by * bw + bx] = sum / count;
+    }
+  }
+  return motion;
 }
 
 // --- Detect camera & fix mirror ---
@@ -315,7 +431,7 @@ function computeEdges(imageData) {
 }
 
 // --- Flood fill with edges ---
-function smartFloodFill(imageData, startX, startY, edges) {
+function smartFloodFill(imageData, startX, startY, edges, motion, mw) {
   const w = imageData.width, h = imageData.height;
   const data = imageData.data;
   const visited = new Uint8Array(w * h);
@@ -324,6 +440,8 @@ function smartFloodFill(imageData, startX, startY, edges) {
   const targetColor = getPixel(data, w, startX, startY);
   const baseTol = 28;
   const edgeTol = 35;
+  const targetMotion = motion ? motion[Math.floor(startY / MOTION_BLOCK) * mw + Math.floor(startX / MOTION_BLOCK)] : 0;
+  const motionTol = 15;
 
   const queue = [[startX, startY]];
   visited[startY * w + startX] = 1;
@@ -354,7 +472,16 @@ function smartFloodFill(imageData, startX, startY, edges) {
       const ne = edges ? edges[nidx] : 0;
       const passEdge = ne <= 55;
       const passColor = nd <= (ne > 25 ? edgeTol * 0.5 : edgeTol);
-      if (passColor && passEdge) {
+
+      let passMotion = true;
+      if (motion) {
+        const mbx = Math.floor(nx / MOTION_BLOCK);
+        const mby = Math.floor(ny / MOTION_BLOCK);
+        const nm = motion[mby * mw + mbx];
+        passMotion = Math.abs(nm - targetMotion) <= motionTol;
+      }
+
+      if (passColor && passEdge && passMotion) {
         queue.push([nx, ny]);
       }
     }
@@ -472,10 +599,21 @@ function createSelection(tapX, tapY) {
       edgeMap = edges;
     }
 
+    let motion = null;
+    let mw = 0;
+    if (depthAssist) {
+      const fullData = ctx.getImageData(0, 0, canvasW, canvasH);
+      if (prevFrame) {
+        motion = computeMotion(fullData.data, prevFrame, canvasW, canvasH);
+        mw = Math.ceil(canvasW / MOTION_BLOCK);
+      }
+      prevFrame = new Uint8Array(fullData.data);
+    }
+
     const result = smartFloodFill(
       imgData,
       Math.min(sx, sw - 1), Math.min(sy, sh - 1),
-      edges
+      edges, motion, mw
     );
 
     if (result.count < 50) {
@@ -507,6 +645,7 @@ function clearAllSelections() {
   selections = [];
   mergedSmooth = null;
   edgeMap = null;
+  prevFrame = null;
   anchorAlpha = null;
   anchorBeta = null;
   trackOffsetX = 0;
@@ -744,16 +883,40 @@ modeBrush.addEventListener('click', () => {
 
 clearBtn.addEventListener('click', clearAllSelections);
 
+// --- Settings panel ---
+function openSettings() {
+  settingsPanel.classList.add('open');
+  backdrop.classList.add('open');
+}
+function closeSettings() {
+  settingsPanel.classList.remove('open');
+  backdrop.classList.remove('open');
+}
+settingsBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (settingsPanel.classList.contains('open')) closeSettings();
+  else openSettings();
+});
+settingsClose.addEventListener('click', closeSettings);
+backdrop.addEventListener('click', closeSettings);
+
+// --- Toggles (settings panel) ---
+function toggleSwitch(el, getter, setter, labelOn, labelOff) {
+  el.addEventListener('click', () => {
+    const val = !getter();
+    setter(val);
+    el.classList.toggle('active', val);
+  });
+}
+
 shadowToggle.addEventListener('click', () => {
   preserveShadows = !preserveShadows;
   shadowToggle.classList.toggle('active', preserveShadows);
-  shadowToggle.textContent = preserveShadows ? '🌓 Schaduw' : '☀️ Effen';
 });
 
 trackToggle.addEventListener('click', () => {
   tracking = !tracking;
   trackToggle.classList.toggle('active', tracking);
-  trackToggle.textContent = tracking ? '🎯 Track' : '🎯 Vast';
   if (tracking && selections.length > 0) anchorOrientation();
   if (!tracking) {
     trackOffsetX = 0;
@@ -762,8 +925,11 @@ trackToggle.addEventListener('click', () => {
   }
 });
 
-shadowToggle.classList.add('active');
-trackToggle.classList.add('active');
+depthToggle.addEventListener('click', () => {
+  depthAssist = !depthAssist;
+  depthToggle.classList.toggle('active', depthAssist);
+  if (!depthAssist) prevFrame = null;
+});
 
 uiToggle.addEventListener('click', () => {
   ui.classList.toggle('collapsed');
