@@ -365,20 +365,38 @@ function unmirrorX(rawX) {
 
 // --- Device orientation ---
 function initOrientation() {
-  if (window.DeviceOrientationEvent) {
-    window.addEventListener('deviceorientation', (e) => {
-      if (e.alpha !== null) {
-        currentAlpha = e.alpha;
-        currentBeta = e.beta || 0;
-        currentGamma = e.gamma || 0;
+  const handleOrientation = (e) => {
+    if (e.alpha !== null) {
+      currentAlpha = e.alpha;
+      currentBeta = e.beta || 0;
+      currentGamma = e.gamma || 0;
+      if (!orientationSupported) {
         orientationSupported = true;
+        status.textContent = '👆 Tik op een vlak om te selecteren';
       }
-    }, true);
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission().then(s => {
-        if (s !== 'granted') orientationSupported = false;
-      }).catch(() => {});
     }
+  };
+
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(s => {
+      if (s === 'granted') {
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      } else {
+        status.textContent = '⚠️ Geen toestemming voor oriëntatie — volgen uit';
+        tracking = false;
+        trackToggle.classList.remove('active');
+      }
+    }).catch(() => {
+      window.addEventListener('deviceorientation', handleOrientation, true);
+    });
+  } else {
+    window.addEventListener('deviceorientation', handleOrientation, true);
+    setTimeout(() => {
+      if (!orientationSupported) {
+        trackHint.textContent = '⚠️ Oriëntatie niet ondersteund';
+        trackHint.style.opacity = '1';
+      }
+    }, 2000);
   }
 }
 
@@ -393,7 +411,7 @@ function updateTracking() {
   if (da < -180) da += 360;
   let db = currentBeta - anchorBeta;
 
-  trackOffsetX = Math.round(-da * PIXELS_PER_DEGREE);
+  trackOffsetX = Math.round(da * PIXELS_PER_DEGREE);
   trackOffsetY = Math.round(-db * PIXELS_PER_DEGREE);
 }
 
